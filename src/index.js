@@ -1,3 +1,4 @@
+import "./styles.css"
 import NewApiService from "./api-service";
 import SimpleLightbox from "simplelightbox";
 import "simplelightbox/dist/simple-lightbox.min.css";
@@ -8,7 +9,7 @@ const gallery = document.querySelector('.gallery');
 const loadMoreBtn = document.querySelector('.load-more');
 
 let isShown = 0;
-loadMoreBtn.disabled = true;
+loadMoreBtn.classList.add('is-hidden');
 const newApiService = new NewApiService();
 
 searchForm.addEventListener('submit', onSearch);
@@ -28,7 +29,6 @@ function onSearch(event) {
 
     isShown = 0;
     fetchGallery();
-    renderImages(hits);
 }
 
 function onLoadMore() {
@@ -37,14 +37,15 @@ function onLoadMore() {
 }
 
 async function fetchGallery() {
-    loadMoreBtn.disabled = true;
+    loadMoreBtn.classList.add('is-hidden');
     const result = await newApiService.fetchGallery();
     const { hits, total } = result;
     isShown += hits.length;
 
     if (!hits.length) {
         Notify.failure(`Sorry, there are no images matching your search query. Please try again.`);
-        loadMoreBtn.disabled = true;
+        loadMoreBtn.classList.add('is-hidden');
+        searchForm.reset();
         return;
     }
 
@@ -53,12 +54,14 @@ async function fetchGallery() {
 
     if (isShown < total) {
         Notify.success(`Hooray! We found ${total} images.`);
-        loadMoreBtn.disabled = false;
+        loadMoreBtn.classList.remove('is-hidden');
     }
 
     if (isShown >= total) {
         Notify.info("We're sorry, but you've reached the end of search results.");
     }
+
+    scrollSmoothly()
 }
 
 function renderImages(images) {
@@ -75,14 +78,10 @@ function renderImages(images) {
       <img class="photo-img" src="${webformatURL}" alt="${tags}" loading="lazy" />
     </a>
     <div class="info">
-      <p class="info-item"><b>Likes</b>
-      ${likes}</p>
-      <p class="info-item"><b>Views</b>
-      ${views}</p>
-      <p class="info-item"><b>Comments</b>
-      ${comments}</p>
-      <p class="info-item"><b>Downloads</b>
-      ${downloads}</p>
+      <p class="info-item"><b>Likes</b>${likes}</p>
+      <p class="info-item"><b>Views</b>${views}</p>
+      <p class="info-item"><b>Comments</b>${comments}</p>
+      <p class="info-item"><b>Downloads</b>${downloads}</p>
     </div>
     </div>`;
       })
@@ -96,3 +95,22 @@ const lightbox = new SimpleLightbox('.gallery a', {
     captionsData: 'alt',
     captionDelay: 250,
 });
+
+window.addEventListener("scroll", handleScroll);
+
+function handleScroll() {
+    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight) {
+        onLoadMore();
+  }
+}
+
+function scrollSmoothly() {
+    const { height: cardHeight } = document
+        .querySelector(".gallery")
+        .firstElementChild.getBoundingClientRect();
+
+    window.scrollBy({
+        top: cardHeight * 0.4,
+        behavior: "smooth",
+    });  
+}
